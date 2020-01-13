@@ -1,0 +1,14 @@
+{
+  "name": "password_man",
+  "version": "1.0.0",
+  "description": "A simple offline Password Manager electron based application",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Akshat Kumar",
+  "license": "ISC",
+  "dependencies": {
+    "electron": "^7.1.8"
+  }
+}
