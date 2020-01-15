@@ -14,7 +14,7 @@ const encrypt_decrypt = (flag, key, phrase) => {
         authTag = cipher.getAuthTag();
         return encrypted;
     }
-    else
+    else if(flag == 1)
     {
         let decipher = crypto.createDecipheriv("aes-256-gcm", hash, iv);
         decipher.setAuthTag(authTag);
@@ -22,6 +22,10 @@ const encrypt_decrypt = (flag, key, phrase) => {
         decrypted += decipher.final("utf-8");
         return decrypted;
     } 
+    else if (flag == 2)
+    {
+        return crypto.createHash("sha256").update(key).digest("hex");
+    }
 }
 
 module.exports = encrypt_decrypt;

@@ -1,9 +1,10 @@
-const {app,BrowserWindow,Menu,ipcMain} = require("electron");
+const {app,BrowserWindow,Menu,ipcMain, dialog} = require("electron");
 const encrypt_decrypt = require("./helper/encrypt_decrypt");
 let mainWindow;
 let addPasswordWindow;
 let showPasswordWindow;
-let masterKey;
+let addMasterKeyWindow;
+let masterKey="";
 app.on("ready",function(){
     mainWindow = new BrowserWindow({
         width: 800,
@@ -13,7 +14,6 @@ app.on("ready",function(){
         }
     })
     //Load master key from file if exists
-    masterKey = "5c26333ad8b2f7796debbc03ede56adab2707bd900d31efc84904a4efe4c2cbb"
     mainWindow.loadFile("./components/PasswordList/password_list.html")
     let newMenu = Menu.buildFromTemplate(menu);
     Menu.setApplicationMenu(newMenu);
@@ -29,6 +29,7 @@ const menu = [
         submenu: [{
             label: "Add password",
             click:function(){
+                if(masterKey != ""){
                 addPasswordWindow = new BrowserWindow({
                     width: 300,
                     height: 200,
@@ -38,6 +39,38 @@ const menu = [
                 })
                 addPasswordWindow.loadFile("./components/AddPassword/add_password.html")
             }
+            else{
+                dialog.showMessageBox({
+                    title: "No Master Key",
+                    type: "info",
+                    buttons:["OK"],
+                    message: "To start adding passwords please add a master key for maximum security.\n The master key should be a strong key with atleast 8 characters and should not be forgotten."
+                })
+            }
+        }
+        },{
+            label: "Add Master Key",
+            click:()=>{
+                if(masterKey == ""){
+                addMasterKeyWindow = new BrowserWindow({
+                    width: 400,
+                    height: 400,
+                    webPreferences:{
+                        nodeIntegration: true
+                    }
+                })
+                addMasterKeyWindow.loadFile("./components/AddMasterKey/add_master_key.html");
+            }
+            else{
+                dialog.showMessageBox({
+                    title: "Master Key Exists",
+                    type: "warning",
+                    buttons:["OK","Reset"],
+                    message: "Master key already exists. If you have forgotten the master key\n please click on reset to reset the master key"
+                })
+            }
+        }
+
         }]
     },
     {
@@ -66,5 +99,10 @@ ipcMain.on("decrypt:password",(e,data)=>{
         showPasswordWindow.webContents.send("receive:decrypt",decrypted);
     }).catch(function(err){console.log(err)})
 
+})
+
+ipcMain.on("add:master",(e,data)=>{
+    masterKey = encrypt_decrypt(2,data,"");
+    addMasterKeyWindow.close();
 })
 
