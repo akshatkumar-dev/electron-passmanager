@@ -1,10 +1,13 @@
 const {app,BrowserWindow,Menu,ipcMain, dialog} = require("electron");
 const encrypt_decrypt = require("./helper/encrypt_decrypt");
+const sendMail = require("./helper/send_email");
 let mainWindow;
 let addPasswordWindow;
 let showPasswordWindow;
 let addMasterKeyWindow;
+let resetMasterPasswordWindow;
 let masterKey="";
+let otp;
 app.on("ready",function(){
     mainWindow = new BrowserWindow({
         width: 800,
@@ -71,6 +74,18 @@ const menu = [
             }
         }
 
+        },{
+            label: "Reset Master Password",
+            click: ()=>{
+                resetMasterPasswordWindow = new BrowserWindow({
+                    height: 500,
+                    width: 500,
+                    webPreferences:{
+                        nodeIntegration: true
+                    }
+                })
+                resetMasterPasswordWindow.loadFile("./components/ResetMasterPassword/reset_master_password.html");
+            }
         }]
     },
     {
@@ -104,5 +119,23 @@ ipcMain.on("decrypt:password",(e,data)=>{
 ipcMain.on("add:master",(e,data)=>{
     masterKey = encrypt_decrypt(2,data,"");
     addMasterKeyWindow.close();
+})
+
+ipcMain.on("reset:master",(e,data)=>{
+    sendMail(data).then((data)=>{
+        otp = data;
+    }).catch((err)=>{
+        console.log(err);
+    })
+})
+ipcMain.on("confirm:master",(e,data)=>{
+    if(data.otp == otp){
+        masterKey = data.master;
+        console.log("changed");
+    }
+    else{ //implement later
+        console.log("wrong otp");
+    }
+    resetMasterPasswordWindow.close();
 })
 

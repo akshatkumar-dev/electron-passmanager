@@ -9,6 +9,7 @@
   "author": "Akshat Kumar",
   "license": "ISC",
   "dependencies": {
-    "electron": "^7.1.8"
+    "electron": "^7.1.8",
+    "nodemailer": "^6.4.2"
   }
 }
