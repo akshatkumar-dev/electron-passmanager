@@ -1,6 +1,7 @@
 const {app,BrowserWindow,Menu,ipcMain, dialog} = require("electron");
-const encrypt_decrypt = require("./helper/encrypt_decrypt");
+const crypto = require("./helper/encrypt_decrypt");
 const sendMail = require("./helper/send_email");
+const file = require("./helper/read_write_data");
 let mainWindow;
 let addPasswordWindow;
 let showPasswordWindow;
@@ -17,12 +18,24 @@ app.on("ready",function(){
         }
     })
     //Load master key from file if exists
-    mainWindow.loadFile("./components/PasswordList/password_list.html")
+    file.read_masterpassword().then((data)=>{
+        masterKey = data;
+        file.read_data(masterKey).then((contents)=>{
+
+            mainWindow.loadFile("./components/PasswordList/password_list.html").then((data1)=>{
+                mainWindow.webContents.send("password:list",contents);
+            
+            }).catch((err)=>{masterKey="";console.log(err)})
+        
+        }).catch((err)=>{masterKey="";console.log(err)})
+    
+    }).catch((err)=>{masterKey = "";console.log(err)});
     let newMenu = Menu.buildFromTemplate(menu);
     Menu.setApplicationMenu(newMenu);
+    
 })
 ipcMain.on("add:password",(e,data)=>{
-   data.password = encrypt_decrypt(0,masterKey,data.password);
+    data.password = file.write_data(data,masterKey);
     mainWindow.webContents.send("add:password",data);
     addPasswordWindow.close()
 })
@@ -102,7 +115,7 @@ const menu = [
     }
 ]
 ipcMain.on("decrypt:password",(e,data)=>{
-    let decrypted = encrypt_decrypt(1,masterKey,data);
+    let decrypted = crypto.decrypt_aes(data,masterKey);
     showPasswordWindow = new BrowserWindow({
         height: 400,
         width: 400,
@@ -117,7 +130,9 @@ ipcMain.on("decrypt:password",(e,data)=>{
 })
 
 ipcMain.on("add:master",(e,data)=>{
-    masterKey = encrypt_decrypt(2,data,"");
+    masterKey = crypto.encrypt_masterpassword(data);
+    file.write_masterpassword(masterKey);
+    
     addMasterKeyWindow.close();
 })
 

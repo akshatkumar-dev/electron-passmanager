@@ -1,31 +1,23 @@
 const crypto = require("crypto");
+const cryptoJs = require("crypto-js");
 
-let resizeIv = Buffer.allocUnsafe(16);
-let iv = crypto.createHash("sha256").update("randomIV").digest();
-iv.copy(resizeIv);
-let authTag;
-const encrypt_decrypt = (flag, key, phrase) => {
-    let hash = crypto.createHash("sha256").update(key).digest();
-    if(flag == 0) //encryption
-    {
-        let cipher = crypto.createCipheriv("aes-256-gcm", hash, iv);
-        let encrypted = cipher.update(phrase, "utf-8", "hex");
-        encrypted += cipher.final("hex");
-        authTag = cipher.getAuthTag();
-        return encrypted;
-    }
-    else if(flag == 1)
-    {
-        let decipher = crypto.createDecipheriv("aes-256-gcm", hash, iv);
-        decipher.setAuthTag(authTag);
-        let decrypted = decipher.update(phrase, "hex", "utf-8");
-        decrypted += decipher.final("utf-8");
-        return decrypted;
-    } 
-    else if (flag == 2)
-    {
-        return crypto.createHash("sha256").update(key).digest("hex");
-    }
+const encrypt_aes = (data, masterPasswordHash) => {
+    let secret = cryptoJs.SHA256(masterPasswordHash);
+    secret.toString(cryptoJs.enc.Hex);
+    let encrypted = cryptoJs.AES.encrypt(data,"'"+secret+"'");
+    return encrypted.toString()
 }
 
-module.exports = encrypt_decrypt;
+const decrypt_aes = (data, masterPasswordHash) => {
+    let secret = cryptoJs.SHA256(masterPasswordHash);
+    secret.toString(cryptoJs.enc.Hex);
+    let decrypted = cryptoJs.AES.decrypt(data,"'"+secret+"'");
+    return decrypted.toString(cryptoJs.enc.Utf8);
+}
+
+const encrypt_masterpassword = (data) => {
+    let hash = cryptoJs.SHA256(data);
+    return hash.toString();
+}
+
+module.exports = {encrypt_aes, decrypt_aes, encrypt_masterpassword};
