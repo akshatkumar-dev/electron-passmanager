@@ -1,6 +1,7 @@
 const fs = require("fs");
 const crypto = require("./encrypt_decrypt");
 const cryptojs = require("crypto-js");
+
 const write_data = (data, masterPasswordHash) => {
     let newUrl = crypto.encrypt_aes(data.url, masterPasswordHash);
     let newPassword = crypto.encrypt_aes(data.password, masterPasswordHash);
@@ -22,7 +23,7 @@ const read_data = (masterPasswordHash) => {
 
 const write_masterpassword = (masterPasswordHash) => {
     let toWrite = crypto.encrypt_aes(masterPasswordHash,"Random MasterPassword Encryption Text");
-    fs.appendFile("data.bin",toWrite+"\n","utf-8",(err)=>{console.log(err)});
+    fs.writeFile("data.bin",toWrite+"\n","utf-8",(err)=>{console.log(err)});
 }
 
 const read_masterpassword = () => {

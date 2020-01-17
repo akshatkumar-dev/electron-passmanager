@@ -2,12 +2,14 @@ const {app,BrowserWindow,Menu,ipcMain, dialog} = require("electron");
 const crypto = require("./helper/encrypt_decrypt");
 const sendMail = require("./helper/send_email");
 const file = require("./helper/read_write_data");
+const resetAllPassword = require("./helper/reset_all_password");
 let mainWindow;
 let addPasswordWindow;
 let showPasswordWindow;
 let addMasterKeyWindow;
 let resetMasterPasswordWindow;
 let masterKey="";
+let oldMasterKey = "";
 let otp;
 app.on("ready",function(){
     mainWindow = new BrowserWindow({
@@ -34,11 +36,7 @@ app.on("ready",function(){
     Menu.setApplicationMenu(newMenu);
     
 })
-ipcMain.on("add:password",(e,data)=>{
-    data.password = file.write_data(data,masterKey);
-    mainWindow.webContents.send("add:password",data);
-    addPasswordWindow.close()
-})
+
 const menu = [
     {
         label: "File",
@@ -83,6 +81,17 @@ const menu = [
                     type: "warning",
                     buttons:["OK","Reset"],
                     message: "Master key already exists. If you have forgotten the master key\n please click on reset to reset the master key"
+                }).then((data)=>{
+                    if(data.response == 1){
+                        resetMasterPasswordWindow = new BrowserWindow({
+                            height: 500,
+                            width: 500,
+                            webPreferences:{
+                                nodeIntegration: true
+                            }
+                        })
+                        resetMasterPasswordWindow.loadFile("./components/ResetMasterPassword/reset_master_password.html");
+                    }
                 })
             }
         }
@@ -114,6 +123,14 @@ const menu = [
         role: "reload"
     }
 ]
+
+// Listeners
+ipcMain.on("add:password",(e,data)=>{
+    data.password = file.write_data(data,masterKey);
+    mainWindow.webContents.send("add:password",data);
+    addPasswordWindow.close()
+})
+
 ipcMain.on("decrypt:password",(e,data)=>{
     let decrypted = crypto.decrypt_aes(data,masterKey);
     showPasswordWindow = new BrowserWindow({
@@ -137,20 +154,26 @@ ipcMain.on("add:master",(e,data)=>{
 })
 
 ipcMain.on("reset:master",(e,data)=>{
-    sendMail(data).then((data)=>{
-        otp = data;
+    sendMail(data).then((datarecv)=>{
+        otp = datarecv;
     }).catch((err)=>{
         console.log(err);
     })
 })
 ipcMain.on("confirm:master",(e,data)=>{
     if(data.otp == otp){
-        masterKey = data.master;
-        console.log("changed");
+        oldMasterKey = masterKey;
+        masterKey = crypto.encrypt_masterpassword(data.password);
+        resetAllPassword(masterKey,oldMasterKey).then((data)=>{
+            mainWindow.webContents.send("password:list",data);
+            resetMasterPasswordWindow.close();
+            console.log("changed");
+        }).catch((err)=>{console.log(err)})
     }
     else{ //implement later
         console.log("wrong otp");
+        resetMasterPasswordWindow.close();
     }
-    resetMasterPasswordWindow.close();
+    
 })
 

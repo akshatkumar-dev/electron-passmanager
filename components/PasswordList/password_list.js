@@ -1,5 +1,6 @@
 const electron = require("electron");
 const ul = document.querySelector("#passwords-ul");
+
 electron.ipcRenderer.on("add:password",(e,data)=>{
     let li = document.createElement("li");
     let text = document.createTextNode(data.url+"->"+data.password);
@@ -20,6 +21,7 @@ const decryptPassword = (e) => {
 
 electron.ipcRenderer.on("password:list",(e,data)=>{
     if(data.url.length != 0){
+        ul.innerHTML = ""
         for(let i = 0;i < data.url.length; i++){
             let li = document.createElement("li");
             let texNode = document.createTextNode(data.url[i]+"->"+data.password[i]);
