@@ -3,6 +3,7 @@ const crypto = require("./helper/encrypt_decrypt");
 const sendMail = require("./helper/send_email");
 const file = require("./helper/read_write_data");
 const resetAllPassword = require("./helper/reset_all_password");
+const del = require("./helper/delete_password");
 let mainWindow;
 let addPasswordWindow;
 let showPasswordWindow;
@@ -11,6 +12,7 @@ let resetMasterPasswordWindow;
 let masterKey="";
 let oldMasterKey = "";
 let otp;
+
 app.on("ready",function(){
     mainWindow = new BrowserWindow({
         width: 800,
@@ -21,9 +23,12 @@ app.on("ready",function(){
     })
     //Load master key from file if exists
     file.read_masterpassword().then((data)=>{
-        masterKey = data;
-        file.read_data(masterKey).then((contents)=>{
+        masterKey = crypto.decrypt_aes(data,"Random MasterPassword Encryption Text")
 
+        file.read_data().then((contents)=>{
+            for(let i = 0;i<contents.url.length;i++){
+                contents.url[i] = crypto.decrypt_aes(contents.url[i],masterKey);
+            }
             mainWindow.loadFile("./components/PasswordList/password_list.html").then((data1)=>{
                 mainWindow.webContents.send("password:list",contents);
             
@@ -31,7 +36,7 @@ app.on("ready",function(){
         
         }).catch((err)=>{masterKey="";console.log(err)})
     
-    }).catch((err)=>{masterKey = "";console.log(err)});
+    }).catch((err)=>{masterKey = "";mainWindow.loadFile("./components/PasswordList/password_list.html")});
     let newMenu = Menu.buildFromTemplate(menu);
     Menu.setApplicationMenu(newMenu);
     
@@ -126,12 +131,18 @@ const menu = [
 
 // Listeners
 ipcMain.on("add:password",(e,data)=>{
-    data.password = file.write_data(data,masterKey);
+    let decrypted = data.url;
+    data.url = crypto.encrypt_aes(data.url,masterKey);
+    data.password = crypto.encrypt_aes(data.password,masterKey);
+    let toWrite = data.url+" "+data.password+"\n";
+    file.write_data(toWrite);
+    data.url = decrypted;
     mainWindow.webContents.send("add:password",data);
     addPasswordWindow.close()
 })
 
 ipcMain.on("decrypt:password",(e,data)=>{
+    data = data.slice(1,data.length);
     let decrypted = crypto.decrypt_aes(data,masterKey);
     showPasswordWindow = new BrowserWindow({
         height: 400,
@@ -148,7 +159,8 @@ ipcMain.on("decrypt:password",(e,data)=>{
 
 ipcMain.on("add:master",(e,data)=>{
     masterKey = crypto.encrypt_masterpassword(data);
-    file.write_masterpassword(masterKey);
+    let toStore = crypto.encrypt_aes(masterKey,"Random MasterPassword Encryption Text")
+    file.write_masterpassword(toStore);
     
     addMasterKeyWindow.close();
 })
@@ -165,6 +177,7 @@ ipcMain.on("confirm:master",(e,data)=>{
         oldMasterKey = masterKey;
         masterKey = crypto.encrypt_masterpassword(data.password);
         resetAllPassword(masterKey,oldMasterKey).then((data)=>{
+
             mainWindow.webContents.send("password:list",data);
             resetMasterPasswordWindow.close();
             console.log("changed");
@@ -175,5 +188,29 @@ ipcMain.on("confirm:master",(e,data)=>{
         resetMasterPasswordWindow.close();
     }
     
+})
+
+ipcMain.on("delete:password",(e,index)=>{
+    console.log(index);
+    dialog.showMessageBox({
+        title: "Confirm Delete",
+        type: "info",
+        buttons:["OK","Cancel"],
+        message: "Are you sure you want to delete the password?\nThis action cannot be reversed"
+    }).then((data)=>{
+        
+        if(data.response == 0){
+            del(index).then((contents)=>{
+                if(contents != "empty"){
+                for(let i = 0;i<contents.url.length;i++){
+                    contents.url[i] = crypto.decrypt_aes(contents.url[i],masterKey);
+                }
+                mainWindow.webContents.send("password:list",contents);
+            }
+            else{mainWindow.webContents.send("clear","nothing")}
+            }).catch((err)=>{console.log(err)})
+        
+        }
+    })
 })
 

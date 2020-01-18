@@ -1,29 +1,24 @@
 const fs = require("fs");
-const crypto = require("./encrypt_decrypt");
-const cryptojs = require("crypto-js");
+const write_data = (data) => {
 
-const write_data = (data, masterPasswordHash) => {
-    let newUrl = crypto.encrypt_aes(data.url, masterPasswordHash);
-    let newPassword = crypto.encrypt_aes(data.password, masterPasswordHash);
-    fs.appendFile("data.bin",newUrl+" "+newPassword+"\n","utf-8",(err)=>{console.log(err)});
-    return newPassword;
+    fs.appendFile("data.bin",data,"utf-8",(err)=>{if(err){console.log(err)}});
 }
 
-const read_data = (masterPasswordHash) => {
+const read_data = () => {
     return new Promise((resolve,reject)=>{
         fs.readFile("data.bin","utf-8",(err,result)=>{
             if(err) {reject(err)}
             else{
-                let data = getUrlPass(result,masterPasswordHash);
+                let data = getUrlPass(result);
                 resolve(data);
             }
         })
     })
 }
 
-const write_masterpassword = (masterPasswordHash) => {
-    let toWrite = crypto.encrypt_aes(masterPasswordHash,"Random MasterPassword Encryption Text");
-    fs.writeFile("data.bin",toWrite+"\n","utf-8",(err)=>{console.log(err)});
+const write_masterpassword = (data) => {
+    //let toWrite = crypto.encrypt_aes(masterPasswordHash,"Random MasterPassword Encryption Text");
+    fs.writeFile("data.bin",data+"\n","utf-8",(err)=>{if(err){console.log(err)}});
 }
 
 const read_masterpassword = () => {
@@ -32,8 +27,8 @@ const read_masterpassword = () => {
             if(err){reject(err)}
             else{
                 let encrypted = getMasterKey(result);
-                let decryptedPass = crypto.decrypt_aes(encrypted,"Random MasterPassword Encryption Text")
-                resolve(decryptedPass.toString(cryptojs.enc.Utf8));
+                //let decryptedPass = crypto.decrypt_aes(encrypted,"Random MasterPassword Encryption Text")
+                resolve(encrypted);
             }
         })
     })
@@ -49,7 +44,7 @@ const getMasterKey = (data) =>{
     return masterKey;
 }
 
-const getUrlPass = (data, masterKey) =>{
+const getUrlPass = (data) =>{
     let i = 0
     while(data[i] != "\n"){
         i++;
@@ -60,7 +55,6 @@ const getUrlPass = (data, masterKey) =>{
     while(i < data.length)
     {
         if(data[i] == " "){
-            toAppend = crypto.decrypt_aes(toAppend,masterKey);
             toSend.url.push(toAppend);
             toAppend = "";
         }
