@@ -1,3 +1,4 @@
+// All basic functions implemented
 const {app,BrowserWindow,Menu,ipcMain, dialog,clipboard} = require("electron");
 const crypto = require("./helper/encrypt_decrypt");
 const sendMail = require("./helper/send_email");
