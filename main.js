@@ -9,10 +9,11 @@ let addPasswordWindow;
 let showPasswordWindow;
 let addMasterKeyWindow;
 let resetMasterPasswordWindow;
+let updatePasswordWindow;
 let masterKey="";
 let oldMasterKey = "";
 let otp;
-
+let updateIndex;
 app.on("ready",function(){
     mainWindow = new BrowserWindow({
         width: 800,
@@ -191,7 +192,6 @@ ipcMain.on("confirm:master",(e,data)=>{
 })
 
 ipcMain.on("delete:password",(e,index)=>{
-    console.log(index);
     dialog.showMessageBox({
         title: "Confirm Delete",
         type: "info",
@@ -200,7 +200,7 @@ ipcMain.on("delete:password",(e,index)=>{
     }).then((data)=>{
         
         if(data.response == 0){
-            del(index).then((contents)=>{
+            del.deletePassword(index).then((contents)=>{
                 if(contents != "empty"){
                 for(let i = 0;i<contents.url.length;i++){
                     contents.url[i] = crypto.decrypt_aes(contents.url[i],masterKey);
@@ -212,5 +212,28 @@ ipcMain.on("delete:password",(e,index)=>{
         
         }
     })
+})
+
+ipcMain.on("update:password",(e,index)=>{
+    updateIndex = index;
+    updatePasswordWindow = new BrowserWindow({
+        width: 400,
+        height: 400,
+        webPreferences:{
+            nodeIntegration: true
+        }
+    })
+    updatePasswordWindow.loadFile("./components/UpdatePassword/update_password.html");
+})
+
+ipcMain.on("updated:password",(e,data)=>{
+    updatePasswordWindow.close()
+    let encrypted = crypto.encrypt_aes(data,masterKey);
+    del.updatePassword(updateIndex,encrypted).then((contents)=>{
+        for(let i = 0;i<contents.url.length;i++){
+            contents.url[i] = crypto.decrypt_aes(contents.url[i],masterKey);
+        }
+        mainWindow.webContents.send("password:list",contents);
+    }).catch((reject)=>{console.log(reject)})
 })
 

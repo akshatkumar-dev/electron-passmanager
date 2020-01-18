@@ -20,7 +20,17 @@ electron.ipcRenderer.on("add:password",(e,data)=>{
     deleteButton.value = count.toString()+data.password;
     deleteButton.addEventListener("click",deleteEntry);
     ul.appendChild(deleteButton)
+    let updateButton = document.createElement("button");
+    let updateText = document.createTextNode("Update");
+    updateButton.appendChild(updateText);
+    updateButton.addEventListener("click",updatePassword);
+    updateButton.value = count.toString()+data.password;
+    ul.appendChild(updateButton);
 })
+
+const updatePassword = (e) =>{
+    electron.ipcRenderer.send("update:password",parseInt(e.target.value[0]))
+}
 
 const decryptPassword = (e) => {
     electron.ipcRenderer.send("decrypt:password", e.target.value);
@@ -55,7 +65,13 @@ electron.ipcRenderer.on("password:list",(e,data)=>{
             ul.appendChild(button);
             deleteButton.value = count.toString()+data.password;
             deleteButton.addEventListener("click",deleteEntry);
-            ul.appendChild(deleteButton)
+            ul.appendChild(deleteButton);
+            let updateButton = document.createElement("button");
+            let updateText = document.createTextNode("Update");
+            updateButton.appendChild(updateText);
+            updateButton.addEventListener("click",updatePassword);
+            updateButton.value = count.toString()+data.password;
+            ul.appendChild(updateButton);
         }
     }
 })

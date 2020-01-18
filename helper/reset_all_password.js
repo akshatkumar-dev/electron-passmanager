@@ -16,7 +16,6 @@ const resetAllPassword = (newMaster,oldMaster) => {
                 contents.url[i] = crypto.encrypt_aes(contents.url[i],newMaster);
                 contents.password[i] = crypto.encrypt_aes(contents.password[i],newMaster);
                 toWrite += contents.url[i]+" "+contents.password[i]+"\n";
-                //fs.write_data({url:contents.url[i],password:contents.password[i]});
                 contents.url[i] = old;
             }
             fs.write_data(toWrite);
