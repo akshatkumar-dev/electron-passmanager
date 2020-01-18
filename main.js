@@ -1,4 +1,4 @@
-const {app,BrowserWindow,Menu,ipcMain, dialog} = require("electron");
+const {app,BrowserWindow,Menu,ipcMain, dialog,clipboard} = require("electron");
 const crypto = require("./helper/encrypt_decrypt");
 const sendMail = require("./helper/send_email");
 const file = require("./helper/read_write_data");
@@ -235,5 +235,10 @@ ipcMain.on("updated:password",(e,data)=>{
         }
         mainWindow.webContents.send("password:list",contents);
     }).catch((reject)=>{console.log(reject)})
+})
+
+ipcMain.on("copy:text",(e,data)=>{
+    let decrypt = crypto.decrypt_aes(data,masterKey);
+    clipboard.writeText(decrypt);
 })
 

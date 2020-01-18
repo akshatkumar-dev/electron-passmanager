@@ -5,7 +5,7 @@ electron.ipcRenderer.on("add:password",(e,data)=>{
 
     let li = document.createElement("li");
     count++;
-    let text = document.createTextNode(data.url+"->"+data.password);
+    let text = document.createTextNode(data.url+"->"+"********");
     li.appendChild(text);
     ul.appendChild(li);
     let button = document.createElement("button");
@@ -26,7 +26,17 @@ electron.ipcRenderer.on("add:password",(e,data)=>{
     updateButton.addEventListener("click",updatePassword);
     updateButton.value = count.toString()+data.password;
     ul.appendChild(updateButton);
+    let copyButton = document.createElement("button");
+    let copyText = document.createTextNode("Copy");
+    copyButton.appendChild(copyText);
+    copyButton.value = count.toString()+data.password;
+    copyButton.addEventListener("click",copyTextEvent);
+    ul.appendChild(copyButton);
 })
+
+const copyTextEvent = (e) => {
+    electron.ipcRenderer.send("copy:text",e.target.value.slice(1,e.target.value.length));
+}
 
 const updatePassword = (e) =>{
     electron.ipcRenderer.send("update:password",parseInt(e.target.value[0]))
@@ -51,7 +61,7 @@ electron.ipcRenderer.on("password:list",(e,data)=>{
         for(let i = 0;i < data.url.length; i++){
             let li = document.createElement("li");
             count++;
-            let texNode = document.createTextNode(data.url[i]+"->"+data.password[i]);
+            let texNode = document.createTextNode(data.url[i]+"->"+"********");
             li.appendChild(texNode);
             ul.appendChild(li);
             let button = document.createElement("button");
@@ -72,6 +82,12 @@ electron.ipcRenderer.on("password:list",(e,data)=>{
             updateButton.addEventListener("click",updatePassword);
             updateButton.value = count.toString()+data.password;
             ul.appendChild(updateButton);
+            let copyButton = document.createElement("button");
+            let copyText = document.createTextNode("Copy");
+            copyButton.appendChild(copyText);
+            copyButton.value = count.toString()+data.password;
+            copyButton.addEventListener("click",copyTextEvent);
+            ul.appendChild(copyButton);
         }
     }
 })
