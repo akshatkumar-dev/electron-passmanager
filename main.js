@@ -10,10 +10,12 @@ let showPasswordWindow;
 let addMasterKeyWindow;
 let resetMasterPasswordWindow;
 let updatePasswordWindow;
+let askMasterPasswordWindow;
 let masterKey="";
 let oldMasterKey = "";
 let otp;
 let updateIndex;
+let authenticated = false;
 app.on("ready",function(){
     mainWindow = new BrowserWindow({
         width: 800,
@@ -22,25 +24,25 @@ app.on("ready",function(){
             nodeIntegration: true
         }
     })
+
+    askMasterPasswordWindow = new BrowserWindow({
+        width: 400,
+        height: 400,
+        webPreferences:{
+            nodeIntegration: true
+        }
+    })
+    
     //Load master key from file if exists
     file.read_masterpassword().then((data)=>{
         masterKey = crypto.decrypt_aes(data,"Random MasterPassword Encryption Text")
-
-        file.read_data().then((contents)=>{
-            for(let i = 0;i<contents.url.length;i++){
-                contents.url[i] = crypto.decrypt_aes(contents.url[i],masterKey);
-            }
-            mainWindow.loadFile("./components/PasswordList/password_list.html").then((data1)=>{
-                mainWindow.webContents.send("password:list",contents);
-            
-            }).catch((err)=>{masterKey="";console.log(err)})
-        
-        }).catch((err)=>{masterKey="";console.log(err)})
-    
+        askMasterPasswordWindow.loadFile("./components/AskMasterPass/ask_master_pass.html")
+        askMasterPasswordWindow.on("closed",()=>{
+            if(!authenticated){app.quit()}
+        })
     }).catch((err)=>{masterKey = "";mainWindow.loadFile("./components/PasswordList/password_list.html")});
     let newMenu = Menu.buildFromTemplate(menu);
-    Menu.setApplicationMenu(newMenu);
-    
+        Menu.setApplicationMenu(newMenu);
 })
 
 const menu = [
@@ -49,7 +51,7 @@ const menu = [
         submenu: [{
             label: "Add password",
             click:function(){
-                if(masterKey != ""){
+                if(masterKey != "" && authenticated){
                 addPasswordWindow = new BrowserWindow({
                     width: 300,
                     height: 200,
@@ -88,7 +90,7 @@ const menu = [
                     buttons:["OK","Reset"],
                     message: "Master key already exists. If you have forgotten the master key\n please click on reset to reset the master key"
                 }).then((data)=>{
-                    if(data.response == 1){
+                    if(data.response == 1 && authenticated){
                         resetMasterPasswordWindow = new BrowserWindow({
                             height: 500,
                             width: 500,
@@ -98,6 +100,14 @@ const menu = [
                         })
                         resetMasterPasswordWindow.loadFile("./components/ResetMasterPassword/reset_master_password.html");
                     }
+                    else if(data.response == 1 && !authenticated){
+                        dialog.showMessageBox({
+                            title: "Master Key Exists",
+                            type: "warning",
+                            buttons:["OK"],
+                            message: "You cannot reset master password unless inside the application"
+                        })
+                    }
                 })
             }
         }
@@ -105,6 +115,8 @@ const menu = [
         },{
             label: "Reset Master Password",
             click: ()=>{
+                if(authenticated)
+                {
                 resetMasterPasswordWindow = new BrowserWindow({
                     height: 500,
                     width: 500,
@@ -113,7 +125,13 @@ const menu = [
                     }
                 })
                 resetMasterPasswordWindow.loadFile("./components/ResetMasterPassword/reset_master_password.html");
-            }
+            }else{dialog.showMessageBox({
+                title: "Master Key Exists",
+                type: "warning",
+                buttons:["OK"],
+                message: "You cannot reset master password unless inside the application"
+            })}
+        }
         }]
     },
     {
@@ -240,5 +258,35 @@ ipcMain.on("updated:password",(e,data)=>{
 ipcMain.on("copy:text",(e,data)=>{
     let decrypt = crypto.decrypt_aes(data,masterKey);
     clipboard.writeText(decrypt);
+})
+
+ipcMain.on("ask:master",(e,data)=>{
+    let encrypted = crypto.encrypt_masterpassword(data);
+    if(encrypted == masterKey){
+        authenticated = true;
+        askMasterPasswordWindow.close();
+        
+
+        file.read_data().then((contents)=>{
+            for(let i = 0;i<contents.url.length;i++){
+                contents.url[i] = crypto.decrypt_aes(contents.url[i],masterKey);
+            }
+            
+            mainWindow.loadFile("./components/PasswordList/password_list.html").then((data1)=>{
+                mainWindow.webContents.send("password:list",contents);
+            
+            }).catch((err)=>{masterKey="";console.log(err)})
+        
+        }).catch((err)=>{masterKey="";console.log(err)})
+    }
+    else
+    {
+        dialog.showMessageBox({
+            title: "Wrong Master Password",
+            type: "warning",
+            buttons:["OK"],
+            message: "The entered master password is invalid"
+        })
+    }
 })
 
