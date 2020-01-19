@@ -1,4 +1,3 @@
-const crypto = require("crypto");
 const cryptoJs = require("crypto-js");
 
 const encrypt_aes = (data, masterPasswordHash) => {

@@ -1,7 +1,14 @@
 const fs = require("fs");
 const write_data = (data) => {
 
-    fs.appendFile("data.bin",data,"utf-8",(err)=>{if(err){console.log(err)}});
+    return new Promise((resolve,reject)=>{
+        fs.appendFile("data.bin",data,"utf-8",(err)=>{
+            if(err){
+                reject(err);
+            }
+            resolve("success");
+        });
+    })
 }
 
 const read_data = () => {
@@ -17,8 +24,14 @@ const read_data = () => {
 }
 
 const write_masterpassword = (data) => {
-    //let toWrite = crypto.encrypt_aes(masterPasswordHash,"Random MasterPassword Encryption Text");
-    fs.writeFile("data.bin",data+"\n","utf-8",(err)=>{if(err){console.log(err)}});
+    return new Promise((resolve,reject)=>{
+        fs.writeFile("data.bin",data+"\n","utf-8",(err)=>{
+            if(err){
+                reject(err);
+            }
+            resolve("success");
+        });
+    })
 }
 
 const read_masterpassword = () => {
@@ -27,7 +40,6 @@ const read_masterpassword = () => {
             if(err){reject(err)}
             else{
                 let encrypted = getMasterKey(result);
-                //let decryptedPass = crypto.decrypt_aes(encrypted,"Random MasterPassword Encryption Text")
                 resolve(encrypted);
             }
         })

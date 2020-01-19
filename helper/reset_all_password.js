@@ -2,14 +2,15 @@ const crypto = require("./encrypt_decrypt");
 const fs = require("./read_write_data");
 
 const resetAllPassword = (newMaster,oldMaster) => {
-    return new Promise((resolve,reject)=>{
-        fs.read_data().then((contents)=>{
+    return new Promise(async (resolve,reject)=>{
+            try{
+            let contents = await fs.read_data();
             for(let i = 0;i<contents.password.length;i++){
                 contents.url[i] = crypto.decrypt_aes(contents.url[i],oldMaster);
                 contents.password[i] = crypto.decrypt_aes(contents.password[i],oldMaster);
             }
             let toStore = crypto.encrypt_aes(newMaster,"Random MasterPassword Encryption Text");
-            fs.write_masterpassword(toStore);
+            await fs.write_masterpassword(toStore);
             let toWrite = "";
             for(let i = 0;i<contents.password.length;i++){
                 let old = contents.url[i];
@@ -18,11 +19,11 @@ const resetAllPassword = (newMaster,oldMaster) => {
                 toWrite += contents.url[i]+" "+contents.password[i]+"\n";
                 contents.url[i] = old;
             }
-            fs.write_data(toWrite);
+            await fs.write_data(toWrite);
             resolve(contents);
-        }).catch((err)=>{reject(err)})
-    })
-    
+        }
+        catch(error){console.log(error)}
+    })   
 }
 
 module.exports = resetAllPassword
